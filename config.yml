@@ -1,0 +1,3 @@
+urls:
+- "https://community.chocolatey.org/api/v2/"
+baseDirectory : "C:\\ProgramData\\chocolatey\\lib\\*\\*.nuspec"
