@@ -2,7 +2,6 @@ package main
 
 import(
 	"encoding/xml"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -33,7 +32,7 @@ func getLatestVersionFromAPI(packageName string, urls []string) (string, error) 
 		}
 	}
 	if latestVersion == "" {
-		return "", fmt.Errorf("Unable to find the latest version from the URLs")
+		return "UNABLE TO PING", nil
 	}
 	return latestVersion, nil
 }
