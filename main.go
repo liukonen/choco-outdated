@@ -3,10 +3,16 @@ package main
 import (
 	"encoding/xml"
 	"fmt"
-	"github.com/spf13/viper"
+	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
+	"syscall"
+
+	"github.com/atotto/clipboard"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -40,10 +46,15 @@ type Nuspec struct {
 }
 
 func main() {
+
+	if isAdmin() {
+		fmt.Println("Admin mode is turned on.")
+	}
+
 	fmt.Println("Loading config...")
 	viper.SetConfigName("config")
 	// Set the path to look for the config file
-	viper.AddConfigPath(".")
+	viper.AddConfigPath(getPath())
 	// Read the config file
 	err := viper.ReadInConfig()
 	if err != nil {
@@ -88,7 +99,7 @@ func main() {
 				return
 			}
 			if latestVersion == "" {
-				outputCh <- fmt.Sprintf(redColor + "%s | %s | unknown?", packageName, packageVersion)
+				outputCh <- fmt.Sprintf(redColor+"%s | %s | unknown?", packageName, packageVersion)
 			} else if packageVersion != latestVersion {
 				outputCh <- fmt.Sprintf(yellowColor+"%s |%s | %s", packageName, packageVersion, latestVersion)
 				results.Store(packageName, latestVersion)
@@ -115,7 +126,66 @@ func main() {
 	})
 
 	if hasUpdates {
-		fmt.Println(resetColor + "To install updates, run the following")
-		fmt.Println(installScript.String())
+		args := os.Args[1:]
+		if len(args) > 0 && args[0] == "auto" {
+			handleAutoMode(installScript.String())
+		} else {
+			fmt.Println(resetColor + "To install updates, run the following")
+			fmt.Println(installScript.String())
+		}
+	}
+}
+
+func getPath() string {
+	exePath, err := os.Executable()
+	if err != nil {
+		fmt.Printf("Failed to get executable path: %v\n", err)
+		return "."
+	}
+
+	// Get the directory containing the executable
+	appDir := filepath.Dir(exePath)
+	return appDir
+}
+
+func isAdmin() bool {
+	if runtime.GOOS == "windows" {
+		_, err := os.Open("\\\\.\\PHYSICALDRIVE0")
+		return err == nil
+	}
+	return os.Getuid() == 0
+}
+
+func runCommand(command string) error {
+	cmd := exec.Command("cmd", "/C", command)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	return cmd.Run()
+}
+
+func handleAutoMode(path string) {
+	if isAdmin() {
+		fmt.Println(resetColor + "calling choco to install updates - " + path)
+		err := runCommand(path)
+		if err != nil {
+			fmt.Println("Error running 'choco upgrade':", err)
+		}
+	} else {
+		fmt.Println("An admin terminal needs to be opened for the command to run.")
+		promptClipboard(path)
+	}
+}
+
+func promptClipboard(path string) {
+	fmt.Println("Would you like me to enter it into your clipboard? (y/n)")
+	var response string
+	fmt.Scanln(&response)
+	response = strings.TrimSpace(strings.ToLower(response))
+	if response == "y" || response == "yes" {
+		err := clipboard.WriteAll(path)
+		if err != nil {
+			fmt.Println("Error writing to clipboard:", err)
+		} else {
+			fmt.Println("The command 'choco upgrade' has been copied to your clipboard.")
+		}
 	}
 }
