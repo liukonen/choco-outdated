@@ -2,7 +2,7 @@ module choco-outdated
 
 go 1.20
 
-require github.com/spf13/viper v1.18.1
+require github.com/spf13/viper v1.18.2
 
 require (
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
