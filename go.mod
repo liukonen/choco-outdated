@@ -2,7 +2,7 @@ module choco-outdated
 
 go 1.23.0
 
-toolchain go1.27.2
+toolchain go1.27.3
 
 require github.com/spf13/viper v1.21.0
 
